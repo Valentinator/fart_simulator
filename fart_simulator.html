@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Fart Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #1a1a12;
+    --card: #2a2a1e;
+    --fg: #e8e4d0;
+    --muted: #8a8670;
+    --accent: #7ccc3f;
+    --accent-glow: rgba(124, 204, 63, 0.35);
+    --brown: #8B6914;
+    --brown-dark: #5a4410;
+    --danger: #e05535;
+    --border: #3a3a2a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Atmospheric background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(124,204,63,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(139,105,20,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(90,68,16,0.05) 0%, transparent 70%);
+    animation: bgDrift 20s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes bgDrift {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    100% { transform: translate(-3%, 2%) rotate(2deg); }
+  }
+
+  /* Gas cloud canvas */
+  #gasCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Header */
+  .app-header {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 48px 20px 12px;
+    width: 100%;
+  }
+
+  .app-header h1 {
+    font-family: 'Bangers', cursive;
+    font-size: clamp(2.4rem, 8vw, 3.6rem);
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-shadow: 0 0 30px var(--accent-glow), 0 4px 0 var(--brown-dark);
+    line-height: 1.1;
+  }
+
+  .app-header p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-top: 6px;
+    font-weight: 400;
+  }
+
+  /* Main content */
+  .main-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding: 20px;
+    width: 100%;
+    max-width: 420px;
+    flex: 1;
+  }
+
+  /* Fart button area */
+  .fart-btn-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .fart-btn-wrapper {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Outer ring pulse */
+  .fart-btn-wrapper::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    opacity: 0.2;
+    animation: ringPulse 3s ease-in-out infinite;
+  }
+
+  .fart-btn-wrapper::after {
+    content: '';
+    position: absolute;
+    width: 115%;
+    height: 115%;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    opacity: 0.08;
+    animation: ringPulse 3s ease-in-out infinite 0.5s;
+  }
+
+  @keyframes ringPulse {
+    0%, 100% { transform: scale(1); opacity: 0.2; }
+    50% { transform: scale(1.08); opacity: 0.05; }
+  }
+
+  .fart-btn {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: radial-gradient(circle at 40% 35%, #8ed44a, #5fa820 60%, #3d7a10);
+    box-shadow:
+      0 8px 32px rgba(124,204,63,0.3),
+      0 2px 8px rgba(0,0,0,0.5),
+      inset 0 -4px 12px rgba(0,0,0,0.25),
+      inset 0 4px 8px rgba(255,255,255,0.15);
+    position: relative;
+    z-index: 2;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .fart-btn:active {
+    transform: scale(0.92);
+    box-shadow:
+      0 2px 12px rgba(124,204,63,0.4),
+      0 1px 4px rgba(0,0,0,0.5),
+      inset 0 2px 8px rgba(0,0,0,0.35);
+  }
+
+  .fart-btn .icon {
+    font-size: 3.2rem;
+    color: rgba(255,255,255,0.9);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    transition: transform 0.15s ease;
+  }
+
+  .fart-btn:active .icon {
+    transform: scale(1.15);
+  }
+
+  .fart-btn .label {
+    font-family: 'Bangers', cursive;
+    font-size: 1.6rem;
+    color: #fff;
+    letter-spacing: 4px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .fart-btn.farting {
+    animation: fartShake 0.4s ease-out;
+  }
+
+  @keyframes fartShake {
+    0% { transform: scale(0.92) rotate(0deg); }
+    15% { transform: scale(0.95) rotate(-3deg); }
+    30% { transform: scale(0.95) rotate(3deg); }
+    45% { transform: scale(0.97) rotate(-2deg); }
+    60% { transform: scale(0.97) rotate(2deg); }
+    75% { transform: scale(0.99) rotate(-1deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  /* Fart type selector */
+  .fart-types {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .fart-type-btn {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .fart-type-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(124,204,63,0.1);
+    box-shadow: 0 0 12px rgba(124,204,63,0.15);
+  }
+
+  .fart-type-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Divider */
+  .divider {
+    width: 80%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 4px 0;
+  }
+
+  /* Timer section */
+  .timer-section {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .timer-section h2 {
+    font-family: 'Bangers', cursive;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    color: var(--brown);
+  }
+
+  .timer-presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .preset-btn {
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--fg);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .preset-btn.active {
+    border-color: var(--brown);
+    color: var(--brown);
+    background: rgba(139,105,20,0.15);
+  }
+
+  .preset-btn:active { transform: scale(0.95); }
+
+  .custom-timer-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .custom-timer-row label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .custom-timer-row input {
+    flex: 1;
+    height: 42px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .custom-timer-row input:focus {
+    border-color: var(--brown);
+  }
+
+  .custom-timer-row span {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  /* Countdown display */
+  .countdown-display {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .countdown-display.visible {
+    display: flex;
+  }
+
+  .countdown-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+  }
+
+  .countdown-ring svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .countdown-ring .track {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 6;
+  }
+
+  .countdown-ring .progress {
+    fill: none;
+    stroke: var(--brown);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.3s linear;
+  }
+
+  .countdown-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bangers', cursive;
+    font-size: 2.4rem;
+    color: var(--fg);
+    letter-spacing: 2px;
+  }
+
+  .cancel-timer-btn {
+    padding: 10px 28px;
+    border-radius: 14px;
+    border: 1.5px solid var(--danger);
+    background: rgba(224,85,53,0.1);
+    color: var(--danger);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .cancel-timer-btn:active { transform: scale(0.95); }
+
+  /* Arm button */
+  .arm-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, var(--brown), var(--brown-dark));
+    color: #fff;
+    font-family: 'Bangers', cursive;
+    font-size: 1.3rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(139,105,20,0.3);
+    transition: all 0.2s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .arm-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(139,105,20,0.3);
+  }
+
+  .arm-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    z-index: 100;
+    opacity: 0;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* Screen flash on fart */
+  .screen-flash {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 60%, rgba(124,204,63,0.15), transparent 70%);
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  .screen-flash.active {
+    opacity: 1;
+    transition: opacity 0.05s ease;
+  }
+
+  /* Footer */
+  .app-footer {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    opacity: 0.5;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gasCanvas" aria-hidden="true"></canvas>
+<div class="screen-flash" id="screenFlash"></div>
+
+<header class="app-header">
+  <h1>FART SIMULATOR</h1>
+  <p>Tap the button. Blame the dog.</p>
+</header>
+
+<main class="main-content">
+  <!-- Instant fart -->
+  <section class="fart-btn-area" aria-label="Instant fart button">
+    <div class="fart-btn-wrapper">
+      <button class="fart-btn" id="fartBtn" aria-label="Play fart sound">
+        <i class="fa-solid fa-cloud icon"></i>
+        <span class="label">FART</span>
+      </button>
+    </div>
+    <div class="fart-types" role="radiogroup" aria-label="Fart sound type">
+      <button class="fart-type-btn active" data-type="0" role="radio" aria-checked="true">Classic</button>
+      <button class="fart-type-btn" data-type="1" role="radio" aria-checked="false">Squeaker</button>
+      <button class="fart-type-btn" data-type="2" role="radio" aria-checked="false">Ripper</button>
+      <button class="fart-type-btn" data-type="3" role="radio" aria-checked="false">Wet</button>
+      <button class="fart-type-btn" data-type="4" role="radio" aria-checked="false">Long</button>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Postponed fart -->
+  <section class="timer-section" aria-label="Postponed fart timer">
+    <h2><i class="fa-solid fa-clock"></i> POSTPONED FART</h2>
+
+    <div class="timer-presets" id="timerPresets">
+      <button class="preset-btn" data-seconds="10">10s</button>
+      <button class="preset-btn active" data-seconds="30">30s</button>
+      <button class="preset-btn" data-seconds="60">1 min</button>
+      <button class="preset-btn" data-seconds="120">2 min</button>
+      <button class="preset-btn" data-seconds="300">5 min</button>
+    </div>
+
+    <div class="custom-timer-row">
+      <label for="customSec">Custom:</label>
+      <input type="number" id="customSec" min="5" max="600" value="30" aria-label="Custom seconds">
+      <span>sec</span>
+    </div>
+
+    <div class="countdown-display" id="countdownDisplay">
+      <div class="countdown-ring">
+        <svg viewBox="0 0 120 120">
+          <circle class="track" cx="60" cy="60" r="52"></circle>
+          <circle class="progress" id="countdownProgress" cx="60" cy="60" r="52"
+            stroke-dasharray="326.73" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="countdown-number" id="countdownNumber">30</div>
+      </div>
+      <button class="cancel-timer-btn" id="cancelTimerBtn">CANCEL</button>
+    </div>
+
+    <button class="arm-btn" id="armBtn">SET THE TRAP</button>
+  </section>
+</main>
+
+<footer class="app-footer">
+  For entertainment purposes only. No real gas involved.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // === Audio Context (lazy init on first tap) ===
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  // === Fart Sound Synthesizer ===
+  // Each fart type is defined by parameters for noise + oscillator synthesis
+  const fartPresets = [
+    { // Classic
+      noiseDur: 0.45, noiseFreq: 120, noiseQ: 3,
+      oscFreq: 75, oscDur: 0.4, oscMod: 40, oscModRate: 12,
+      volume: 0.6, pitchEnd: 0.7
+    },
+    { // Squeaker
+      noiseDur: 0.25, noiseFreq: 800, noiseQ: 12,
+      oscFreq: 280, oscDur: 0.2, oscMod: 100, oscModRate: 30,
+      volume: 0.4, pitchEnd: 1.5
+    },
+    { // Ripper
+      noiseDur: 0.6, noiseFreq: 90, noiseQ: 2,
+      oscFreq: 60, oscDur: 0.55, oscMod: 50, oscModRate: 25,
+      volume: 0.7, pitchEnd: 0.5
+    },
+    { // Wet
+      noiseDur: 0.5, noiseFreq: 200, noiseQ: 5,
+      oscFreq: 100, oscDur: 0.45, oscMod: 60, oscModRate: 8,
+      volume: 0.55, pitchEnd: 0.6
+    },
+    { // Long
+      noiseDur: 1.2, noiseFreq: 100, noiseQ: 2.5,
+      oscFreq: 65, oscDur: 1.1, oscMod: 20, oscModRate: 6,
+      volume: 0.5, pitchEnd: 0.8
+    }
+  ];
+
+  let currentFartType = 0;
+
+  function playFart(typeIndex) {
+    const ctx = getAudioCtx();
+    const p = fartPresets[typeIndex];
+    const now = ctx.currentTime;
+    const masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
+
+    // Noise channel (filtered white noise)
+    const bufferSize = ctx.sampleRate * Math.ceil(p.noiseDur + 0.1);
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(p.noiseFreq, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(
+      Math.max(20, p.noiseFreq * p.pitchEnd), now + p.noiseDur
+    );
+    noiseFilter.Q.value = p.noiseQ;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.7, now);
+    noiseGain.gain.linearRampToValueAtTime(0.0, now + p.noiseDur);
+
+    noiseSrc.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(masterGain);
+    noiseSrc.start(now);
+    noiseSrc.stop(now + p.noiseDur + 0.05);
+
+    // Oscillator channel (FM synthesis for rumble)
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(p.oscFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(
+      Math.max(20, p.oscFreq * p.pitchEnd), now + p.oscDur
+    );
+
+    const modOsc = ctx.createOscillator();
+    modOsc.frequency.value = p.oscModRate;
+    const modGain = ctx.createGain();
+    modGain.gain.setValueAtTime(p.oscMod, now);
+    modGain.gain.linearRampToValueAtTime(0, now + p.oscDur);
+    modOsc.connect(modGain);
+    modGain.connect(osc.frequency);
+
+    const oscFilter = ctx.createBiquadFilter();
+    oscFilter.type = 'lowpass';
+    oscFilter.frequency.value = 400;
+    oscFilter.Q.value = 1;
+
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.5, now);
+    oscGain.gain.linearRampToValueAtTime(0.0, now + p.oscDur);
+
+    osc.connect(oscFilter);
+    oscFilter.connect(oscGain);
+    oscGain.connect(masterGain);
+
+    osc.start(now);
+    modOsc.start(now);
+    osc.stop(now + p.oscDur + 0.05);
+    modOsc.stop(now + p.oscDur + 0.05);
+
+    // Master envelope
+    masterGain.gain.setValueAtTime(0.001, now);
+    masterGain.gain.exponentialRampToValueAtTime(p.volume, now + 0.02);
+    masterGain.gain.setValueAtTime(p.volume, now + p.oscDur * 0.6);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + Math.max(p.noiseDur, p.oscDur) + 0.05);
+
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate([50, 30, 30]);
+    }
+  }
+
+  // === Gas Cloud Particle System ===
+  const gasCanvas = document.getElementById('gasCanvas');
+  const gCtx = gasCanvas.getContext('2d');
+  let particles = [];
+
+  function resizeGasCanvas() {
+    gasCanvas.width = window.innerWidth;
+    gasCanvas.height = window.innerHeight;
+  }
+  resizeGasCanvas();
+  window.addEventListener('resize', resizeGasCanvas);
+
+  class GasParticle {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.radius = Math.max(8, Math.random() * 35 + 15);
+      this.vx = (Math.random() - 0.5) * 3;
+      this.vy = -(Math.random() * 2.5 + 0.5);
+      this.life = 1.0;
+      this.decay = Math.random() * 0.012 + 0.008;
+      this.growRate = Math.random() * 0.8 + 0.3;
+      // Green-ish with variation
+      const g = Math.floor(Math.random() * 60 + 160);
+      const r = Math.floor(Math.random() * 40 + 80);
+      const b = Math.floor(Math.random() * 30 + 20);
+      this.color = { r, g, b };
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.vy *= 0.995;
+      this.vx += (Math.random() - 0.5) * 0.15;
+      this.radius += this.growRate;
+      this.life -= this.decay;
+    }
+    draw(ctx) {
+      if (this.life <= 0) return;
+      const { r, g, b } = this.color;
+      const a = this.life * 0.18;
+      const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, Math.max(1, this.radius));
+      grad.addColorStop(0, `rgba(${r},${g},${b},${a})`);
+      grad.addColorStop(0.5, `rgba(${r},${g},${b},${a * 0.5})`);
+      grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, Math.max(1, this.radius), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function spawnGasCloud(x, y, count) {
+    for (let i = 0; i < count; i++) {
+      particles.push(new GasParticle(
+        x + (Math.random() - 0.5) * 40,
+        y + (Math.random() - 0.5) * 20
+      ));
+    }
+  }
+
+  function animateGas() {
+    gCtx.clearRect(0, 0, gasCanvas.width, gasCanvas.height);
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+      p.update();
+      p.draw(gCtx);
+    }
+    requestAnimationFrame(animateGas);
+  }
+  animateGas();
+
+  // === Screen Flash ===
+  const screenFlash = document.getElementById('screenFlash');
+  function flashScreen() {
+    screenFlash.classList.add('active');
+    setTimeout(() => screenFlash.classList.remove('active'), 150);
+  }
+
+  // === Toast ===
+  const toastEl = document.getElementById('toast');
+  let toastTimeout = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+
+  // === Main Fart Button ===
+  const fartBtn = document.getElementById('fartBtn');
+  fartBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    playFart(currentFartType);
+    fartBtn.classList.remove('farting');
+    void fartBtn.offsetWidth; // reflow
+    fartBtn.classList.add('farting');
+
+    // Spawn gas from button center
+    const rect = fartBtn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    spawnGasCloud(cx, cy, 18);
+    flashScreen();
+  });
+
+  fartBtn.addEventListener('animationend', () => {
+    fartBtn.classList.remove('farting');
+  });
+
+  // === Fart Type Selector ===
+  const typeBtns = document.querySelectorAll('.fart-type-btn');
+  typeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      typeBtns.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-checked', 'true');
+      currentFartType = parseInt(btn.dataset.type);
+    });
+  });
+
+  // === Timer Logic ===
+  let timerSeconds = 30;
+  let timerInterval = null;
+  let timerRemaining = 0;
+  let timerTotal = 0;
+
+  const presetBtns = document.querySelectorAll('.preset-btn');
+  const customSecInput = document.getElementById('customSec');
+  const armBtn = document.getElementById('armBtn');
+  const countdownDisplay = document.getElementById('countdownDisplay');
+  const countdownProgress = document.getElementById('countdownProgress');
+  const countdownNumber = document.getElementById('countdownNumber');
+  const cancelTimerBtn = document.getElementById('cancelTimerBtn');
+
+  const circumference = 2 * Math.PI * 52; // ~326.73
+  countdownProgress.setAttribute('stroke-dasharray', circumference);
+
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      presetBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      timerSeconds = parseInt(btn.dataset.seconds);
+      customSecInput.value = timerSeconds;
+    });
+  });
+
+  customSecInput.addEventListener('input', () => {
+    const val = parseInt(customSecInput.value);
+    if (!isNaN(val) && val >= 5 && val <= 600) {
+      timerSeconds = val;
+      // Deselect presets if custom doesn't match
+      presetBtns.forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.seconds) === val);
+      });
+    }
+  });
+
+  function updateCountdown() {
+    timerRemaining--;
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      countdownDisplay.classList.remove('visible');
+      armBtn.disabled = false;
+
+      // Fire the fart!
+      playFart(currentFartType);
+      spawnGasCloud(window.innerWidth / 2, window.innerHeight * 0.4, 30);
+      flashScreen();
+      showToast('Prrrrt! The trap has been sprung.');
+      return;
+    }
+
+    const pct = 1 - (timerRemaining / timerTotal);
+    const offset = circumference * (1 - pct);
+    countdownProgress.setAttribute('stroke-dashoffset', offset);
+    countdownNumber.textContent = timerRemaining;
+  }
+
+  armBtn.addEventListener('click', () => {
+    const val = parseInt(customSecInput.value);
+    if (isNaN(val) || val < 5 || val > 600) {
+      showToast('Pick a time between 5 and 600 seconds.');
+      return;
+    }
+    timerSeconds = val;
+    timerTotal = timerSeconds;
+    timerRemaining = timerSeconds;
+
+    countdownProgress.setAttribute('stroke-dashoffset', 0);
+    countdownNumber.textContent = timerRemaining;
+    countdownDisplay.classList.add('visible');
+    armBtn.disabled = true;
+
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(updateCountdown, 1000);
+
+    showToast(`Fart armed in ${timerSeconds}s...`);
+  });
+
+  cancelTimerBtn.addEventListener('click', () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    countdownDisplay.classList.remove('visible');
+    armBtn.disabled = false;
+    showToast('Timer cancelled. Gas safely contained.');
+  });
+
+  // === Keep screen awake if possible (Wake Lock API) ===
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        await navigator.wakeLock.request('screen');
+      }
+    } catch (e) { /* silently fail */ }
+  }
+
+  // Request wake lock on first interaction
+  document.addEventListener('pointerdown', function wakeLockInit() {
+    requestWakeLock();
+    document.removeEventListener('pointerdown', wakeLockInit);
+  }, { once: true });
+</script>
+</body>
+</html>
