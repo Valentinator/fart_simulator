@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Fart Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #1a1a12; --card: #2a2a1e; --fg: #e8e4d0; --muted: #8a8670;
+    --accent: #7ccc3f; --accent-glow: rgba(124, 204, 63, 0.35);
+    --brown: #8B6914; --brown-dark: #5a4410; --danger: #e05535; --border: #3a3a2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--fg);
+    min-height: 100dvh; display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(124,204,63,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(139,105,20,0.08) 0%, transparent 50%);
+    animation: bgDrift 20s ease-in-out infinite alternate; pointer-events: none; z-index: 0;
+  }
+  @keyframes bgDrift { 0% { transform: translate(0,0) rotate(0deg); } 100% { transform: translate(-3%,2%) rotate(2deg); } }
+  #gasCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+  .app-header { position: relative; z-index: 2; text-align: center; padding: 48px 20px 12px; width: 100%; }
+  .app-header h1 {
+    font-family: 'Bangers', cursive; font-size: clamp(2.4rem, 8vw, 3.6rem); letter-spacing: 3px;
+    color: var(--accent); text-shadow: 0 0 30px var(--accent-glow), 0 4px 0 var(--brown-dark); line-height: 1.1;
+  }
+  .app-header p { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
+  .main-content {
+    position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center;
+    gap: 24px; padding: 20px; width: 100%; max-width: 420px; flex: 1;
+  }
+  .fart-btn-area { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+  .fart-btn-wrapper {
+    position: relative; width: 200px; height: 200px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fart-btn-wrapper::before {
+    content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%;
+    border: 2px solid var(--accent); opacity: 0.2; animation: ringPulse 3s ease-in-out infinite;
+  }
+  .fart-btn-wrapper::after {
+    content: ''; position: absolute; width: 115%; height: 115%; border-radius: 50%;
+    border: 1px solid var(--accent); opacity: 0.08; animation: ringPulse 3s ease-in-out infinite 0.5s;
+  }
+  @keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.08); opacity: 0.05; } }
+  .fart-btn {
+    width: 180px; height: 180px; border-radius: 50%; border: none; cursor: pointer;
+    background: radial-gradient(circle at 40% 35%, #8ed44a, #5fa820 60%, #3d7a10);
+    box-shadow: 0 8px 32px rgba(124,204,63,0.3), 0 2px 8px rgba(0,0,0,0.5),
+      inset 0 -4px 12px rgba(0,0,0,0.25), inset 0 4px 8px rgba(255,255,255,0.15);
+    position: relative; z-index: 2; transition: transform 0.1s ease, box-shadow 0.15s ease;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    -webkit-user-select: none; user-select: none;
+  }
+  .fart-btn:active {
+    transform: scale(0.92);
+    box-shadow: 0 2px 12px rgba(124,204,63,0.4), 0 1px 4px rgba(0,0,0,0.5), inset 0 2px 8px rgba(0,0,0,0.35);
+  }
+  .fart-btn .icon { font-size: 3.2rem; color: rgba(255,255,255,0.9); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  .fart-btn .label { font-family: 'Bangers', cursive; font-size: 1.6rem; color: #fff; letter-spacing: 4px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+  .fart-btn.farting { animation: fartShake 0.4s ease-out; }
+  @keyframes fartShake {
+    0% { transform: scale(0.92) rotate(0deg); } 25% { transform: scale(0.95) rotate(-3deg); }
+    50% { transform: scale(0.95) rotate(3deg); } 75% { transform: scale(0.99) rotate(-1deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .fart-types { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .fart-type-btn {
+    padding: 8px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--muted); font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;
+    max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    -webkit-user-select: none; user-select: none;
+  }
+  .fart-type-btn.active {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(124,204,63,0.1); box-shadow: 0 0 12px rgba(124,204,63,0.15);
+  }
+  .fart-type-btn.real-mode { border-color: #4caf50; color: #4caf50; background: rgba(76, 175, 80, 0.1); }
+  .fart-type-btn.real-mode.active { box-shadow: 0 0 14px rgba(76, 175, 80, 0.25); }
+  .fart-type-btn:active { transform: scale(0.95); }
+  .connect-btn {
+    padding: 10px 20px; border-radius: 30px; border: 1.5px dashed var(--muted);
+    background: transparent; color: var(--muted); font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease;
+    display: flex; align-items: center; gap: 8px; -webkit-user-select: none; user-select: none;
+  }
+  .connect-btn i { font-size: 1rem; transition: transform 0.3s ease; }
+  .connect-btn:hover { border-color: var(--fg); color: var(--fg); }
+  .connect-btn:hover i { transform: rotate(90deg); }
+  .connect-btn.loading { border-style: solid; border-color: var(--brown); color: var(--brown); pointer-events: none; justify-content: center; }
+  .connect-btn.success { border-style: solid; border-color: #4caf50; color: #4caf50; pointer-events: none; background: rgba(76, 175, 80, 0.1); }
+  .divider { width: 80%; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+  .timer-section {
+    width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+    padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+  .timer-section h2 { font-family: 'Bangers', cursive; font-size: 1.4rem; letter-spacing: 2px; color: var(--brown); }
+  .timer-presets { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .preset-btn {
+    padding: 8px 16px; border-radius: 12px; border: 1.5px solid var(--border); background: transparent;
+    color: var(--fg); font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s ease; -webkit-user-select: none; user-select: none;
+  }
+  .preset-btn.active { border-color: var(--brown); color: var(--brown); background: rgba(139,105,20,0.15); }
+  .preset-btn:active { transform: scale(0.95); }
+  .custom-timer-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .custom-timer-row label { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+  .custom-timer-row input {
+    flex: 1; height: 42px; border-radius: 12px; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--fg); font-family: 'Nunito', sans-serif;
+    font-size: 1rem; font-weight: 700; text-align: center; outline: none;
+  }
+  .custom-timer-row input:focus { border-color: var(--brown); }
+  .custom-timer-row span { font-size: 0.85rem; color: var(--muted); }
+  .countdown-display { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+  .countdown-display.visible { display: flex; }
+  .countdown-ring { position: relative; width: 120px; height: 120px; }
+  .countdown-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .countdown-ring .track { fill: none; stroke: var(--border); stroke-width: 6; }
+  .countdown-ring .progress { fill: none; stroke: var(--brown); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.3s linear; }
+  .countdown-number { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Bangers', cursive; font-size: 2.4rem; color: var(--fg); }
+  .cancel-timer-btn {
+    padding: 10px 28px; border-radius: 14px; border: 1.5px solid var(--danger);
+    background: rgba(224,85,53,0.1); color: var(--danger); font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  }
+  .cancel-timer-btn:active { transform: scale(0.95); }
+  .arm-btn {
+    width: 100%; padding: 16px; border-radius: 16px; border: none;
+    background: linear-gradient(135deg, var(--brown), var(--brown-dark)); color: #fff;
+    font-family: 'Bangers', cursive; font-size: 1.3rem; letter-spacing: 3px; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(139,105,20,0.3); transition: all 0.2s ease;
+    -webkit-user-select: none; user-select: none;
+  }
+  .arm-btn:active { transform: scale(0.97); }
+  .arm-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--card); border: 1px solid var(--border); color: var(--fg);
+    padding: 12px 24px; border-radius: 14px; font-size: 0.85rem; font-weight: 700;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 100; opacity: 0;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none;
+    white-space: nowrap; max-width: 90vw; text-overflow: ellipsis; overflow: hidden; text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .screen-flash {
+    position: fixed; inset: 0;
+    background: radial-gradient(circle at 50% 60%, rgba(124,204,63,0.15), transparent 70%);
+    z-index: 5; pointer-events: none; opacity: 0; transition: opacity 0.1s ease;
+  }
+  .screen-flash.active { opacity: 1; }
+  .app-footer { position: relative; z-index: 2; text-align: center; padding: 20px; color: var(--muted); font-size: 0.75rem; opacity: 0.5; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gasCanvas" aria-hidden="true"></canvas>
+<div class="screen-flash" id="screenFlash"></div>
+
+<header class="app-header">
+  <h1>FART SIMULATOR</h1>
+  <p>Tap the button. Blame the dog.</p>
+</header>
+
+<main class="main-content">
+  <section class="fart-btn-area" aria-label="Instant fart button">
+    <div class="fart-btn-wrapper">
+      <button class="fart-btn" id="fartBtn" aria-label="Play fart sound">
+        <i class="fa-solid fa-cloud icon"></i>
+        <span class="label">FART</span>
+      </button>
+    </div>
+    <div class="fart-types" id="fartTypesContainer" role="radiogroup" aria-label="Fart sound type">
+      <button class="fart-type-btn active" data-type="0" role="radio" aria-checked="true">Classic</button>
+      <button class="fart-type-btn" data-type="1" role="radio" aria-checked="false">Squeaker</button>
+      <button class="fart-type-btn" data-type="2" role="radio" aria-checked="false">Ripper</button>
+      <button class="fart-type-btn" data-type="3" role="radio" aria-checked="false">Wet</button>
+      <button class="fart-type-btn" data-type="4" role="radio" aria-checked="false">Long</button>
+    </div>
+    <button class="connect-btn" id="connectBtn">
+      <i class="fa-solid fa-rotate"></i>
+      Connect Real Sound Library
+    </button>
+  </section>
+
+  <div class="divider"></div>
+
+  <section class="timer-section" aria-label="Postponed fart timer">
+    <h2><i class="fa-solid fa-clock"></i> POSTPONED FART</h2>
+    <div class="timer-presets">
+      <button class="preset-btn" data-seconds="10">10s</button>
+      <button class="preset-btn active" data-seconds="30">30s</button>
+      <button class="preset-btn" data-seconds="60">1 min</button>
+      <button class="preset-btn" data-seconds="120">2 min</button>
+      <button class="preset-btn" data-seconds="300">5 min</button>
+    </div>
+    <div class="custom-timer-row">
+      <label for="customSec">Custom:</label>
+      <input type="number" id="customSec" min="5" max="600" value="30" aria-label="Custom seconds">
+      <span>sec</span>
+    </div>
+    <div class="countdown-display" id="countdownDisplay">
+      <div class="countdown-ring">
+        <svg viewBox="0 0 120 120">
+          <circle class="track" cx="60" cy="60" r="52"></circle>
+          <circle class="progress" id="countdownProgress" cx="60" cy="60" r="52" stroke-dasharray="326.73" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="countdown-number" id="countdownNumber">30</div>
+      </div>
+      <button class="cancel-timer-btn" id="cancelTimerBtn">CANCEL</button>
+    </div>
+    <button class="arm-btn" id="armBtn">SET THE TRAP</button>
+  </section>
+</main>
+
+<footer class="app-footer">For entertainment purposes only. No real gas involved.</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+  // ==========================================
+  // 1. FALLBACK SYNTHESIZER
+  // ==========================================
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function createNoisyLFO(ctx, duration, stepsPerSecond) {
+    const length = ctx.sampleRate * duration;
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    const stepSize = Math.max(1, Math.floor(ctx.sampleRate / stepsPerSecond));
+    let current = 0;
+    for (let i = 0; i < length; i++) {
+      if (i % stepSize === 0) current = Math.random() * 2 - 1;
+      data[i] = current;
+    }
+    return buffer;
+  }
+
+  const synthPresets = [
+    { duration: 0.65, baseFreq: 85, freqEnd: 55, bodyRes: 140, bodyQ: 3.5, noiseMix: 0.55, oscMix: 0.55, wobbleRate: 12, wobbleDepth: 35, sputterRate: 15, sputterDepth: 0.35, volume: 0.75, vibrate: [40, 20, 30] },
+    { duration: 0.3, baseFreq: 220, freqEnd: 350, bodyRes: 700, bodyQ: 10, noiseMix: 0.7, oscMix: 0.3, wobbleRate: 30, wobbleDepth: 100, sputterRate: 40, sputterDepth: 0.6, volume: 0.6, vibrate: [20, 10, 20] },
+    { duration: 0.55, baseFreq: 65, freqEnd: 45, bodyRes: 100, bodyQ: 2, noiseMix: 0.6, oscMix: 0.7, wobbleRate: 8, wobbleDepth: 25, sputterRate: 35, sputterDepth: 0.85, volume: 0.8, vibrate: [10, 10, 10, 10, 10, 10, 20] },
+    { duration: 0.5, baseFreq: 90, freqEnd: 70, bodyRes: 110, bodyQ: 2.5, noiseMix: 0.8, oscMix: 0.4, wobbleRate: 6, wobbleDepth: 20, sputterRate: 20, sputterDepth: 0.7, volume: 0.65, vibrate: [30, 50, 30] },
+    { duration: 1.4, baseFreq: 75, freqEnd: 50, bodyRes: 120, bodyQ: 2, noiseMix: 0.4, oscMix: 0.6, wobbleRate: 4, wobbleDepth: 15, sputterRate: 8, sputterDepth: 0.2, volume: 0.7, vibrate: [100] }
+  ];
+
+  function playSynthFart(typeIndex) {
+    const ctx = getAudioCtx();
+    const p = synthPresets[typeIndex];
+    const now = ctx.currentTime;
+    const dur = p.duration;
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.001, now);
+    masterGain.gain.exponentialRampToValueAtTime(p.volume, now + 0.02);
+    masterGain.gain.setValueAtTime(p.volume, now + dur * 0.6);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + dur + 0.05);
+    masterGain.connect(ctx.destination);
+
+    const pitchLFOBuffer = createNoisyLFO(ctx, dur + 0.1, p.wobbleRate);
+    const pitchLFO = ctx.createBufferSource(); pitchLFO.buffer = pitchLFOBuffer;
+    const pitchLFOGain = ctx.createGain(); pitchLFOGain.gain.value = p.wobbleDepth;
+    pitchLFO.connect(pitchLFOGain); pitchLFO.start(now); pitchLFO.stop(now + dur + 0.1);
+
+    const volLFOBuffer = createNoisyLFO(ctx, dur + 0.1, p.sputterRate);
+    const volLFO = ctx.createBufferSource(); volLFO.buffer = volLFOBuffer;
+    const volLFOGain = ctx.createGain(); volLFOGain.gain.value = p.sputterDepth;
+    const volOffset = ctx.createConstantSource(); volOffset.offset.value = 1 - p.sputterDepth;
+    volLFO.connect(volLFOGain); volOffset.connect(volLFOGain);
+    volLFOGain.connect(masterGain.gain); volLFO.start(now); volOffset.start(now);
+    volLFO.stop(now + dur + 0.1); volOffset.stop(now + dur + 0.1);
+
+    const nBuffer = ctx.createBuffer(1, ctx.sampleRate * (dur + 0.2), ctx.sampleRate);
+    const nData = nBuffer.getChannelData(0);
+    for (let i = 0; i < nData.length; i++) nData[i] = Math.random() * 2 - 1;
+    const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = nBuffer;
+    const nBody = ctx.createBiquadFilter(); nBody.type = 'bandpass';
+    nBody.frequency.setValueAtTime(p.bodyRes, now);
+    nBody.frequency.exponentialRampToValueAtTime(Math.max(20, p.bodyRes * 0.6), now + dur);
+    nBody.Q.value = p.bodyQ;
+    const nLP = ctx.createBiquadFilter(); nLP.type = 'lowpass'; nLP.frequency.value = 1000;
+    const noiseGain = ctx.createGain(); noiseGain.gain.value = p.noiseMix;
+    noiseSrc.connect(nBody); nBody.connect(nLP); nLP.connect(noiseGain); noiseGain.connect(masterGain);
+    noiseSrc.start(now); noiseSrc.stop(now + dur + 0.1);
+
+    const osc1 = ctx.createOscillator(); osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(p.baseFreq, now);
+    osc1.frequency.exponentialRampToValueAtTime(Math.max(20, p.freqEnd), now + dur);
+    pitchLFOGain.connect(osc1.frequency);
+    const osc2 = ctx.createOscillator(); osc2.type = 'square';
+    osc2.frequency.setValueAtTime(p.baseFreq * 1.02, now);
+    osc2.frequency.exponentialRampToValueAtTime(Math.max(20, p.freqEnd * 1.02), now + dur);
+    const pitchLFO2Buffer = createNoisyLFO(ctx, dur + 0.1, p.wobbleRate * 1.3);
+    const pitchLFO2 = ctx.createBufferSource(); pitchLFO2.buffer = pitchLFO2Buffer;
+    const pitchLFO2Gain = ctx.createGain(); pitchLFO2Gain.gain.value = p.wobbleDepth * 0.8;
+    pitchLFO2.connect(pitchLFO2Gain); pitchLFO2Gain.connect(osc2.frequency);
+    pitchLFO2.start(now); pitchLFO2.stop(now + dur + 0.1);
+    const oscLP = ctx.createBiquadFilter(); oscLP.type = 'lowpass';
+    oscLP.frequency.setValueAtTime(350, now);
+    oscLP.frequency.exponentialRampToValueAtTime(150, now + dur); oscLP.Q.value = 2;
+    const oscGain = ctx.createGain(); oscGain.gain.value = p.oscMix;
+    osc1.connect(oscLP); osc2.connect(oscLP); oscLP.connect(oscGain); oscGain.connect(masterGain);
+    osc1.start(now); osc2.start(now); osc1.stop(now + dur + 0.1); osc2.stop(now + dur + 0.1);
+    if (navigator.vibrate) navigator.vibrate(p.vibrate);
+  }
+
+  // ==========================================
+  // 2. REAL SOUNDS (Wikimedia Commons)
+  // ==========================================
+  let realAudioLibrary = [];
+  let isRealMode = false;
+  let currentFartType = 0;
+
+  const connectBtn = document.getElementById('connectBtn');
+  const typeBtnsContainer = document.getElementById('fartTypesContainer');
+
+  connectBtn.addEventListener('click', fetchRealFarts);
+
+  // Guaranteed timeout wrapper that catches stalled headers, body, OR decoding
+  function fetchAndDecode(url, ctx, ms = 6000) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Timeout')), ms);
+      (async () => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const arrayBuffer = await res.arrayBuffer();
+          const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+          clearTimeout(timer);
+          resolve(audioBuffer);
+        } catch (e) {
+          clearTimeout(timer);
+          reject(e);
+        }
+      })();
+    });
+  }
+
+  async function fetchRealFarts() {
+    connectBtn.classList.remove('success');
+    connectBtn.classList.add('loading');
+    connectBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching sounds...';
+
+    const searchTerms = ['fart sound', 'fart', 'flatulence sound', 'flatulence'];
+    let audioFiles = [];
+
+    for (const term of searchTerms) {
+      if (audioFiles.length >= 8) break;
+      try {
+        const searchUrl = 'https://commons.wikimedia.org/w/api.php?' + new URLSearchParams({
+          action: 'query', list: 'search', srsearch: term,
+          srnamespace: '6', srlimit: '20', format: 'json', origin: '*'
+        });
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        const searchData = await (await fetch(searchUrl, { signal: controller.signal })).json();
+        clearTimeout(timer);
+
+        if (!searchData.query?.search?.length) continue;
+
+        const titles = searchData.query.search.map(i => i.title);
+        const infoUrl = 'https://commons.wikimedia.org/w/api.php?' + new URLSearchParams({
+          action: 'query', titles: titles.join('|'),
+          prop: 'imageinfo', iiprop: 'url|mime', format: 'json', origin: '*'
+        });
+        const controller2 = new AbortController();
+        const timer2 = setTimeout(() => controller2.abort(), 5000);
+        const infoData = await (await fetch(infoUrl, { signal: controller2.signal })).json();
+        clearTimeout(timer2);
+
+        for (const key in infoData.query.pages) {
+          const page = infoData.query.pages[key];
+          if (page.imageinfo?.[0]) {
+            const info = page.imageinfo[0];
+            if (info.mime && info.mime.startsWith('audio/')) {
+              if (!audioFiles.find(f => f.url === info.url)) {
+                let cleanName = page.title.replace('File:', '').replace(/\.\w+$/, '');
+                audioFiles.push({ name: cleanName, url: info.url });
+              }
+            }
+          }
+          if (audioFiles.length >= 8) break;
+        }
+      } catch (e) {
+        console.warn('Search skipped:', term, e.message);
+        continue;
+      }
+    }
+
+    if (audioFiles.length === 0) {
+      connectBtn.classList.remove('loading');
+      connectBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> No sounds found (Retry)';
+      showToast('Could not find audio files on Wikimedia.');
+      return;
+    }
+
+    // Download and decode with a guaranteed 6-second timeout per file
+    connectBtn.innerHTML = '<i class="fa-solid fa-download"></i> Downloading sounds...';
+    const ctx = getAudioCtx();
+    const decodedBuffers = [];
+    const targetCount = 5;
+
+    for (const file of audioFiles) {
+      if (decodedBuffers.length >= targetCount) break;
+      try {
+        connectBtn.innerHTML = `<i class="fa-solid fa-download"></i> Loading ${decodedBuffers.length + 1}/${targetCount}...`;
+        
+        const audioBuffer = await fetchAndDecode(file.url, ctx, 6000);
+        
+        if (audioBuffer.duration > 0.1 && audioBuffer.length > 100) {
+          let displayName = file.name;
+          if (displayName.length > 14) displayName = displayName.substring(0, 14) + '…';
+          decodedBuffers.push({ name: displayName, buffer: audioBuffer });
+        }
+      } catch (e) {
+        console.warn('Skipped file:', file.name, e.message);
+        continue; // Immediately skip stalled/broken files
+      }
+    }
+
+    if (decodedBuffers.length === 0) {
+      connectBtn.classList.remove('loading');
+      connectBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Download failed (Retry)';
+      showToast('Files found but could not be downloaded.');
+      return;
+    }
+
+    // Success
+    realAudioLibrary = decodedBuffers;
+    isRealMode = true;
+    currentFartType = 0;
+
+    typeBtnsContainer.innerHTML = '';
+    decodedBuffers.forEach((item, index) => {
+      const btn = document.createElement('button');
+      btn.className = `fart-type-btn real-mode ${index === 0 ? 'active' : ''}`;
+      btn.dataset.type = index;
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', index === 0 ? 'true' : 'false');
+      btn.textContent = item.name;
+      btn.addEventListener('click', handleTypeClick);
+      typeBtnsContainer.appendChild(btn);
+    });
+
+    connectBtn.classList.remove('loading');
+    connectBtn.classList.add('success');
+    connectBtn.innerHTML = `<i class="fa-solid fa-check"></i> ${decodedBuffers.length} Real Sounds Loaded`;
+    showToast('Connected! Playing real recordings.');
+  }
+
+  function playRealFart(index) {
+    if (!realAudioLibrary[index]) return;
+    const ctx = getAudioCtx();
+    const source = ctx.createBufferSource();
+    source.buffer = realAudioLibrary[index].buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = 1.2;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(0);
+    if (navigator.vibrate) navigator.vibrate([50, 30, 30]);
+  }
+
+  // ==========================================
+  // 3. UI, PARTICLES, TIMER
+  // ==========================================
+  function handleTypeClick(e) {
+    const btns = typeBtnsContainer.querySelectorAll('.fart-type-btn');
+    btns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-checked', 'false'); });
+    e.target.classList.add('active');
+    e.target.setAttribute('aria-checked', 'true');
+    currentFartType = parseInt(e.target.dataset.type);
+  }
+
+  document.querySelectorAll('.fart-type-btn').forEach(btn => {
+    btn.addEventListener('click', handleTypeClick);
+  });
+
+  const gasCanvas = document.getElementById('gasCanvas');
+  const gCtx = gasCanvas.getContext('2d');
+  let particles = [];
+  function resizeGasCanvas() { gasCanvas.width = window.innerWidth; gasCanvas.height = window.innerHeight; }
+  resizeGasCanvas();
+  window.addEventListener('resize', resizeGasCanvas);
+
+  class GasParticle {
+    constructor(x, y) {
+      this.x = x; this.y = y; this.radius = Math.max(8, Math.random() * 35 + 15);
+      this.vx = (Math.random() - 0.5) * 3; this.vy = -(Math.random() * 2.5 + 0.5);
+      this.life = 1.0; this.decay = Math.random() * 0.012 + 0.008; this.growRate = Math.random() * 0.8 + 0.3;
+      const g = Math.floor(Math.random() * 60 + 160), r = Math.floor(Math.random() * 40 + 80), b = Math.floor(Math.random() * 30 + 20);
+      this.color = { r, g, b };
+    }
+    update() { this.x += this.vx; this.y += this.vy; this.vy *= 0.995; this.vx += (Math.random() - 0.5) * 0.15; this.radius += this.growRate; this.life -= this.decay; }
+    draw(ctx) {
+      if (this.life <= 0) return;
+      const { r, g, b } = this.color; const a = this.life * 0.18; const rad = Math.max(1, this.radius);
+      const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, rad);
+      grad.addColorStop(0, `rgba(${r},${g},${b},${a})`); grad.addColorStop(0.5, `rgba(${r},${g},${b},${a * 0.5})`); grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(this.x, this.y, rad, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  function spawnGasCloud(x, y, count) { for (let i = 0; i < count; i++) particles.push(new GasParticle(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 20)); }
+  function animateGas() { gCtx.clearRect(0, 0, gasCanvas.width, gasCanvas.height); particles = particles.filter(p => p.life > 0); for (const p of particles) { p.update(); p.draw(gCtx); } requestAnimationFrame(animateGas); }
+  animateGas();
+
+  const screenFlash = document.getElementById('screenFlash');
+  function flashScreen() { screenFlash.classList.add('active'); setTimeout(() => screenFlash.classList.remove('active'), 150); }
+
+  const toastEl = document.getElementById('toast');
+  let toastTimeout = null;
+  function showToast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); if (toastTimeout) clearTimeout(toastTimeout); toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2500); }
+
+  function triggerFart() {
+    if (isRealMode) { playRealFart(currentFartType); } else { playSynthFart(currentFartType); }
+  }
+
+  const fartBtn = document.getElementById('fartBtn');
+  fartBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    triggerFart();
+    fartBtn.classList.remove('farting'); void fartBtn.offsetWidth; fartBtn.classList.add('farting');
+    const rect = fartBtn.getBoundingClientRect();
+    spawnGasCloud(rect.left + rect.width / 2, rect.top + rect.height / 2, 18);
+    flashScreen();
+  });
+  fartBtn.addEventListener('animationend', () => fartBtn.classList.remove('farting'));
+
+  let timerSeconds = 30, timerInterval = null, timerRemaining = 0, timerTotal = 0;
+  const presetBtns = document.querySelectorAll('.preset-btn');
+  const customSecInput = document.getElementById('customSec');
+  const armBtn = document.getElementById('armBtn');
+  const countdownDisplay = document.getElementById('countdownDisplay');
+  const countdownProgress = document.getElementById('countdownProgress');
+  const countdownNumber = document.getElementById('countdownNumber');
+  const cancelTimerBtn = document.getElementById('cancelTimerBtn');
+  const circumference = 2 * Math.PI * 52;
+  countdownProgress.setAttribute('stroke-dasharray', circumference);
+
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      presetBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active');
+      timerSeconds = parseInt(btn.dataset.seconds); customSecInput.value = timerSeconds;
+    });
+  });
+  customSecInput.addEventListener('input', () => {
+    const val = parseInt(customSecInput.value);
+    if (!isNaN(val) && val >= 5 && val <= 600) { timerSeconds = val; presetBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.seconds) === val)); }
+  });
+
+  function updateCountdown() {
+    timerRemaining--;
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval); timerInterval = null;
+      countdownDisplay.classList.remove('visible'); armBtn.disabled = false;
+      triggerFart(); spawnGasCloud(window.innerWidth / 2, window.innerHeight * 0.4, 30); flashScreen();
+      showToast('Prrrrt! The trap has been sprung.');
+      return;
+    }
+    const pct = 1 - (timerRemaining / timerTotal);
+    countdownProgress.setAttribute('stroke-dashoffset', circumference * (1 - pct));
+    countdownNumber.textContent = timerRemaining;
+  }
+
+  armBtn.addEventListener('click', () => {
+    const val = parseInt(customSecInput.value);
+    if (isNaN(val) || val < 5 || val > 600) { showToast('Pick a time between 5 and 600 seconds.'); return; }
+    timerSeconds = val; timerTotal = timerSeconds; timerRemaining = timerSeconds;
+    countdownProgress.setAttribute('stroke-dashoffset', 0); countdownNumber.textContent = timerRemaining;
+    countdownDisplay.classList.add('visible'); armBtn.disabled = true;
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(updateCountdown, 1000);
+    showToast(`Fart armed in ${timerSeconds}s...`);
+  });
+
+  cancelTimerBtn.addEventListener('click', () => {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    countdownDisplay.classList.remove('visible'); armBtn.disabled = false;
+    showToast('Timer cancelled. Gas safely contained.');
+  });
+
+  async function requestWakeLock() { try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {} }
+  document.addEventListener('pointerdown', function initWake() { requestWakeLock(); document.removeEventListener('pointerdown', initWake); }, { once: true });
+</script>
+</body>
+</html>
